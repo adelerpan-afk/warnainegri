@@ -1,0 +1,152 @@
+Siap, Bang. Ini **checklist lengkap & pelan‑pelan** supaya penggantian `apps_script_code.gs` berjalan mulus dan non‑SVG nggak muncul lagi di galeri.
+
+***
+
+## ✅ Checklist langkah demi langkah
+
+### 1) Persiapan & backup
+
+*   [ ] **Backup** dulu isi `apps_script_code.gs` lama (copy ke file lain).
+*   [ ] Pastikan Abang pegang **FOLDER\_ID** (folder Drive berisi SVG) & **SHEET\_ID** (Spreadsheet untuk counter).
+
+### 2) Ganti script di Google Apps Script
+
+*   [ ] Buka **Apps Script** project Abang.
+*   [ ] Buka file `apps_script_code.gs` → **hapus isi lama** → **paste** script versi **ketat** yang saya kirim sebelumnya.
+*   [ ] **Edit konfigurasi** di atas file:
+    *   `FOLDER_ID` → isi dengan ID folder SVG.
+    *   `SHEET_ID` → isi dengan ID Spreadsheet (sheet `downloads` akan dibuat otomatis jika belum ada).
+*   [ ] **Save** (Ctrl/Cmd+S).
+
+### 3) Aktifkan Advanced Drive Service (wajib)
+
+*   [ ] Di editor Apps Script, klik ikon **Services (puzzle)**.
+*   [ ] Klik **+** → cari **Drive API** → **Add**.
+*   [ ] (Opsional) Jalankan fungsi apa pun (mis. `handleList_` via `doGet` test) agar Apps Script meminta **otorisasi** → izinkan.
+
+> Catatan: Ini adalah **Advanced Google Service** (bukan `DriveApp`). Tanpa langkah ini, `Drive.Files.list` akan gagal.
+
+### 4) Pastikan Google Drive API aktif di Cloud Project
+
+*   [ ] Di Apps Script → **Project Settings** → **Google Cloud Platform (GCP) Project** → **Open in Cloud Console**.
+*   [ ] Di Cloud Console → **APIs & Services → Enabled APIs & services**.
+*   [ ] Pastikan **Google Drive API** statusnya **Enabled**. Kalau belum → **Enable**.
+
+### 5) Deploy ulang Web App
+
+*   [ ] **Deploy → Manage deployments** → pilih deployment yang ada → **Edit** (atau **New deployment** → **Web app**).
+*   [ ] **Execute as**: **Me (akun Abang)**.
+*   [ ] **Who has access**: **Anyone** / **Anyone with the link** (sesuaikan kebutuhan akses publik).
+*   [ ] **Deploy** → catat **Web app URL** (ini yang jadi `API_URL` di front‑end).
+
+### 6) Update front‑end
+
+*   [ ] Di `script.js` (front‑end), set:
+    ```js
+    const API_URL = '<<WEB_APP_URL_BARU>>';
+    ```
+*   [ ] **Hard reload** (Ctrl+Shift+R) atau tambahkan cache-buster saat uji:
+    *   `.../exec?action=list&_=${Date.now()}`.
+
+### 7) Uji endpoint satu‑satu (di browser)
+
+*   [ ] **List**: buka\
+    `https://.../exec?action=list`\
+    → Harus berupa JSON dengan `files` **hanya** SVG.\
+    → Cek cepat: semua `mimeType` = `image/svg+xml`.
+*   [ ] **Raw (SVG valid)**: ambil `id` dari list → buka\
+    `https://.../exec?action=raw&id=<<ID>>`\
+    → Harus menampilkan konten SVG. **Response header** harus `image/svg+xml; charset=utf-8`.
+*   [ ] **Raw (ID non‑SVG)**: coba ID non‑SVG (kalau ada) → harus balas **“Bukan file SVG”**.
+*   [ ] **Hit counter**:\
+    `https://.../exec?action=hit&id=<<ID>>` → respon `{ ok: true, count: <angka> }`.\
+    → Buka Spreadsheet → sheet `downloads` bertambah/naik.
+*   [ ] **Download (DL)**:\
+    `https://.../exec?action=dl&id=<<ID>>` → redirect ke unduhan Drive & counter ikut naik.
+
+### 8) Uji galeri di UI
+
+*   [ ] Buka halaman galeri → **hanya SVG yang tampil**.
+*   [ ] Coba tombol **720/1080/1920** → unduhan sukses, counter naik.
+*   [ ] Kalau thumbnail tidak muncul untuk item tertentu, lihat bagian **Tips thumbnail** di bawah.
+
+***
+
+## 🔧 Tips & opsi tambahan (opsional, membantu banget)
+
+### A) Pastikan thumbnail tampil untuk publik
+
+*   Link `thumbnailLink` dari Drive kadang butuh auth dan bisa kosong untuk SVG tertentu.
+*   Di script ketat, kita pakai `thumbnailLink` **fallback** ke:
+        https://lh3.googleusercontent.com/d/<<ID>>=w300-h300-c
+*   Jika gambar thumbnail masih **blank** karena aturan share:
+    *   **Solusi cepat** (khusus SVG): gunakan endpoint `raw` sebagai sumber `<img>`:
+        ![Visualization](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+gAAAALCAYAAADsm6dVAAABHklEQVR4AezX0QqAIAwF0Oj/Pzp68SUoBHObniCIRN3Onu55eAgQIECAAAECBAgQIECAAIFwgZ8Denh/CiBAgAABAgQIECBAgAABAiUEagf0EsSKJECAAAECBAgQIECAAAEC3wIC+ouRJQIECBAgQIAAAQIECBAgMEtAQJ8l/bzHHwIECBAgQIAAAQIECBAg0AQE9Eax2od+CBAgQIAAAQIECBAgQKCSgIBeaVqZalULAQIECBAgQIAAAQIECAwVENCHcjpslIBzCBAgQIAAAQIECBAgsJuAgL7bxPV7C3gJECBAgAABAgQIECCQTkBATzcSBdUX0AEBAgQIECBAgAABAgT6BQT0fjM7CMQKuJ0AAQIECBAgQIAAgSUFLgAAAP//mkeKXAAAAAZJREFUAwC7ZwAXslr6lwAAAABJRU5ErkJggg==)
+        Browser bisa render SVG langsung; ini **tidak tergantung** thumbnail Drive.
+    *   Atau share file/folder sebagai **Anyone with the link (Viewer)** di Drive (sesuai kebijakan akses Abang).
+
+### B) Front‑end filter (opsional safety net)
+
+Walau server sudah ketat, boleh tetap saring di front‑end:
+
+```js
+const files = (data.files || []).filter(f => f.mimeType === 'image/svg+xml');
+```
+
+### C) Batasi payload (opsional)
+
+Di Advanced Drive Service, `Drive.Files.list` bisa diberi `fields` untuk hemat data. Jika layanan Abang mengembalikan struktur **v3** (punya `files`), boleh pakai:
+
+```javascript
+const res = Drive.Files.list({
+  q,
+  pageSize: 200,
+  fields: 'files(id, name, mimeType, thumbnailLink)'
+});
+```
+
+> Jika yang kembali `items` (gaya v2), hilangkan `fields` atau sesuaikan ke format v2.
+
+***
+
+## 🧪 Troubleshooting cepat
+
+*   **Error: “You do not have permission to call Drive.Files.list”**\
+    → Advanced Drive Service **belum diaktifkan** di Apps Script, atau belum di‑authorize. Aktifkan di **Services**, lalu **Deploy ulang**.
+
+*   **`action=list` tetap kosong** padahal folder ada file:
+    *   Cek `FOLDER_ID` benar.
+    *   Pastikan file SVG benar‑benar terdeteksi Drive sebagai `image/svg+xml` (bukan `application/octet-stream`).
+        > Dengan mode **ketat**, file yang salah MIME **tidak** akan muncul. Kalau perlu meloloskan yang “kontennya SVG tapi MIME salah”, kabari ya—nanti saya kirim versi kompromi (cek tag `<svg>`).
+
+*   **403/401 di front‑end** saat fetch:
+    *   Cek **Deploy** “Who has access” = **Anyone**.
+    *   API\_URL benar dan tidak typo.
+    *   CORS sudah di‑set oleh `withCors_` (sudah OK di script kita).
+
+*   **Spreadsheet tidak terupdate**:
+    *   Cek `SHEET_ID` & sheet `downloads` ada.
+    *   Script **Execute as: Me** agar punya akses edit Spreadsheet.
+
+*   **Thumbnail tidak muncul**:
+    *   Pakai `<img src="API_URL?action=raw&id=...">` (untuk SVG ini paling aman).
+    *   Atau atur sharing Drive.
+
+***
+
+## 🚀 Ringkasan komando uji (copy‑paste URL di address bar)
+
+*   List:\
+    `API_URL?action=list`
+*   Raw:\
+    `API_URL?action=raw&id=FILE_ID`
+*   Hit:\
+    `API_URL?action=hit&id=FILE_ID`
+*   Download:\
+    `API_URL?action=dl&id=FILE_ID`
+
+> Tambahkan `&_=${Date.now()}` untuk bypass cache saat debugging.
+
+***
+
+Kalau sudah jalan, kirim screenshot `action=list` dan satu kartu di galeri—biar saya bantu sanity check cepat. Kalau Abang nanti ingin **versi kompromi** (meloloskan SVG yang MIME‑nya keliru) atau **pakai `fields` yang hemat data** sesuai versi Drive API yang muncul, tinggal bilang—saya bikinin variannya. 👍🏻

@@ -1,0 +1,92 @@
+/* Sedikit styling tambahan */
+.card-img-top { 
+  object-fit: cover; 
+  height: 160px; 
+  background: #f8f9fa;
+}
+.btn-size { 
+  margin-right: .25rem; 
+  margin-bottom: .25rem; 
+}
+.badge-downloads { 
+  float: right; 
+}
+#loading.d-none { 
+  display: none !important; 
+}
+#status.d-none { 
+  display: none !important; 
+}
+
+/* Kartu responsif kecil */
+@media (max-width: 576px) {
+  .card-img-top { 
+    height: 120px; 
+  }
+  .card-title {
+    font-size: 0.9rem;
+  }
+}
+
+/* Biar tombol muat anak-ukuran */
+.btn-size { 
+  white-space: nowrap; 
+}
+
+/* Modal styling */
+.modal {
+  background: rgba(0,0,0,0.5);
+}
+.modal-dialog {
+  max-width: 90%;
+}
+#svgContainer {
+  max-height: 70vh;
+  overflow: auto;
+}
+#svgContainer svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Loading animation */
+.spinner-border {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* Card hover effects */
+.card {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Button improvements */
+.btn {
+  transition: all 0.2s ease-in-out;
+}
+.btn:active {
+  transform: scale(0.98);
+}
+
+/* Badge styling */
+.badge {
+  font-size: 0.7em;
+}
+
+/* Text truncation */
+.card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Small file ID */
+.text-muted {
+  font-size: 0.75rem;
+  word-break: break-all;
+}
